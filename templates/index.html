@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Cyber UI Input</title>
+  <title>Malicious Link Safety Check</title>
   <style>
     body {
       margin: 0;
@@ -119,15 +119,15 @@
   <div id="hud">
     <div class="hud-line">
       <span>SYSTEM:</span>
-      <span class="hud-value">READY FOR INPUT</span>
+      <span class="hud-value">Please enter the URL you want to scan."</span>
     </div>
   </div>
 
   <div id="control-panel">
-    <input type="text" id="user-input" placeholder="Enter url you want to check">
+    <input type="text" id="user-input" placeholder="Type or paste a URL to check its safety">
     <span id="text-width-helper"></span>
     <div id="url"><div class="scan-line" id="scan-line"></div></div>
-    <button id="execute-btn">Check</button>
+    <button id="execute-btn">Analyze</button>
     <div id="result"></div>
   </div>
 
@@ -163,7 +163,7 @@
         url_block.style.width = inputBox.offsetWidth + "px";
         inputBox.classList.add('hiden');
 
-        resultBox.textContent = "scanning...";
+        resultBox.textContent = "Checking the URL...";
 
         fetch("{{Backend_URL}}", {
           method: 'POST', // or 'GET', 'PUT', 'DELETE'
@@ -181,7 +181,7 @@
         .then(data => {
           console.log(data);
           if ('URL' in data){
-            let resultText = `scaning result: url is ${data.safe? 'safe' : 'unsafe'}`;
+            let resultText = `Scan complete: url is ${data.safe? 'safe' : 'unsafe'}`;
             let i = 0;
             resultBox.textContent = '';
             function typeEffect() {
@@ -197,7 +197,7 @@
         })
         .catch(error => {
             console.error('Error:', error);
-            resultBox.textContent = `Error: can't access server at the moment.`;
+            resultBox.textContent = `Oops! Unable to connect to the server. Please try again later.`;
             url_block.classList.add('hiden');
             inputBox.classList.remove('hiden');
         });
