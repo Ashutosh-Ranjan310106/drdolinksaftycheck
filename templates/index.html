@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cyber UI Input</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      font-family: 'Courier New', monospace;
+      color: #00ff88;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #hud {
+      margin-bottom: 20px;
+    }
+
+    #control-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      background-color: #111;
+      color: #00ff88;
+      border: 1px solid #00ff88;
+      width: 300px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+    }
+    input[type="text"]:focus {
+        background-color: transparent;
+        border-color: #00ff00;
+        color: #00ff00;
+
+        font-size: 16px;
+    }
+
+    .hiden {
+      display: none !important;
+    }
+
+    #execute-btn {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #00ff88;
+      color: black;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #result {
+      margin-top: 20px;
+      color: #44ffaa;
+      font-size: 18px;
+    }
+
+    #url {
+        position: relative;
+        width: 300px;
+        height: 40px;
+        border: 1px solid #00ff88;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #00ff88;
+        margin-top: 10px;
+        overflow: hidden;
+        }
+
+    .scan-line {
+        position: absolute;
+        top: 0px;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(to right, transparent, #00ff88, transparent);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1;
+        }
+
+    .scanning {
+        opacity: 1;
+        animation: scanMove 0.5s linear infinite alternate;
+    }
+    #text-width-helper {
+        position: absolute;
+        visibility: hidden;
+        white-space: pre;
+        font-family: 'Courier New', monospace;
+        font-size: 16px;
+    }
+
+    @keyframes scanMove {
+        0% {
+            top: 0px;
+        }
+        100% {
+            top: 100%;
+        }
+        }
+  </style>
+</head>
+<body>
+
+  <div id="hud">
+    <div class="hud-line">
+      <span>SYSTEM:</span>
+      <span class="hud-value">READY FOR INPUT</span>
+    </div>
+  </div>
+
+  <div id="control-panel">
+    <input type="text" id="user-input" placeholder="Enter url you want to check">
+    <span id="text-width-helper"></span>
+    <div id="url"><div class="scan-line" id="scan-line"></div></div>
+    <button id="execute-btn">Check</button>
+    <div id="result"></div>
+  </div>
+
+
+
+  <script type="module">
+
+    const button = document.getElementById("execute-btn");
+    const inputBox = document.getElementById("user-input");
+    const resultBox = document.getElementById("result");
+    const url_block = document.getElementById("url");
+    const controlPanel = document.getElementById("control-panel");
+    const textWidthHelper = document.getElementById("text-width-helper");
+    url_block.classList.add('hiden');
+    console.log("Backend URL: {{Backend_URL}}");
+    // Dynamically resize input width
+    inputBox.addEventListener("input", () => {
+    textWidthHelper.textContent = inputBox.value || inputBox.placeholder;
+    const width = Math.max(textWidthHelper.offsetWidth, 300); // add some padding
+    console.log(`Input width: ${width}px ${inputBox.style.width}`);
+    inputBox.style.width = width + "px";
+    })
+    button.addEventListener("click", () => {
+        const input = inputBox.value.trim();
+        if (input === "") {
+            resultBox.textContent = "Please enter a valid URL.";
+            return;
+        }
+
+        // Show the URL block with updated content
+        url_block.classList.remove('hiden');
+        url_block.innerHTML = `${input} <div class="scan-line scanning" id="scan-line"></div>`;
+        url_block.style.width = inputBox.offsetWidth + "px";
+        inputBox.classList.add('hiden');
+
+        resultBox.textContent = "scanning...";
+
+        fetch("{{Backend_URL}}", {
+          method: 'POST', // or 'GET', 'PUT', 'DELETE'
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({"url":input}) // optional for POST/PUT
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+          console.log(data);
+          if ('URL' in data){
+            resultBox.textContent = `scaning result: url is ${data.safe? 'safe' : 'unsafe'}`;
+            url_block.classList.add('hiden');
+            inputBox.classList.remove('hiden');
+          }else{throw new Error('Invalid response format');}
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            resultBox.textContent = `Error: can't access server at the moment.`;
+            url_block.classList.add('hiden');
+            inputBox.classList.remove('hiden');
+        });
+
+        console.log(`Processing URL: ${input}`);
+        // Simulate processing delay
+    });
+  </script>
+
+</body>
+</html>
