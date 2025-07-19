@@ -70,7 +70,6 @@ def check():
         status = google_api_key_check(url)
         mlstatus = ml_check(url)
         print(f"URL: {url}, Status: {'Safe' if status else 'Unsafe'}")
-        sleep(1)
         return jsonify({"URL": url,"safe": status})
     else:
         return render_template('index.html',url=None,Backend_URL=backend_url)

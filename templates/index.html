@@ -114,7 +114,7 @@
         }
   </style>
 </head>
-<body>
+<body onload="document.getElementById('user-input').focus()">
 
   <div id="hud">
     <div class="hud-line">
@@ -181,7 +181,16 @@
         .then(data => {
           console.log(data);
           if ('URL' in data){
-            resultBox.textContent = `scaning result: url is ${data.safe? 'safe' : 'unsafe'}`;
+            let resultText = `scaning result: url is ${data.safe? 'safe' : 'unsafe'}`;
+            let i = 0;
+            resultBox.textContent = '';
+            function typeEffect() {
+              if (i < resultText.length) {
+                resultBox.textContent += resultText.charAt(i++);
+                setTimeout(typeEffect, 30);
+              }
+            }
+            typeEffect();
             url_block.classList.add('hiden');
             inputBox.classList.remove('hiden');
           }else{throw new Error('Invalid response format');}
