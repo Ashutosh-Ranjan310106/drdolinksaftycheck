@@ -8,6 +8,10 @@ import os
 import pickle
 import vt
 from threading import Thread
+
+model_path = r'models\random_forest_model.pkl'
+model = pickle.load(open(model_path,'rb'))
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -23,7 +27,7 @@ api_key = os.getenv('APIKEY') or None
 
 apiurl = 'https://safebrowsing.googleapis.com/v4/threatMatches:find?key=' + api_key if api_key else None
 backend_url = f"http://{app.config['HOST']}:{app.config['PORT']}"
-model = pickle.load(open(r'models/RandomForestClassifier_model_link_safety_checker.pkl','rb'))
+
 
 
 respose_body = {
@@ -70,56 +74,15 @@ from urllib.parse import urlparse
 from collections import Counter
 import math
 import string
-from sklearn.preprocessing import LabelEncoder
-le = LabelEncoder()
-
-# List of suspicious keywords often found in phishing URLs
+from extract_features import extract_all_features
 
 
-# Function to calculate Shannon entropy of a string
-def shannon_entropy(s):
-    if not s:
-        return 0
-    probs = [freq / len(s) for freq in Counter(s).values()]
-    return -sum(p * math.log2(p) for p in probs)
 
-# Function to check if URL uses an IP address instead of a domain
-def has_ip_address(url):
-    ip_pattern = r'(\d{1,3}\.){3}\d{1,3}'
-    return 1 if re.search(ip_pattern, url) else 0
-
-# Main vectorizing function
-def extract_url_features(df):
-    # Basic features
-    df['url_lower'] = df['url'].str.lower()
-    df['url_length'] = df['url'].str.len()
-    df['num_dots'] = df['url'].str.count(r'\.')
-    df['num_digits'] = df['url'].str.count(r'\d')
-    df['num_special_chars'] = df['url'].apply(lambda x: sum(c in string.punctuation for c in x))
-    df['has_at'] = df['url'].str.contains('@').astype(int)
-    df['has_https'] = df['url'].str.startswith('https').astype(int)
-    df['num_subdirs'] = df['url'].apply(lambda x: urlparse(x).path.count('/'))
-    df['ip_present'] = df['url'].apply(has_ip_address)
-
-    # Extract tld using tldextract
-    df['tld'] = df['url'].apply(lambda x: tldextract.extract(x).suffix)
-
-    # Shannon entropy
-    df['entropy'] = df['url_lower'].apply(shannon_entropy)
-
-    
-
-    # Drop helper columns
-    df.drop(columns=['url_lower'], inplace=True)
-    df['tld'] = le.fit_transform(df['tld'])
-    return df
-
-    
-features = ['url_length',	'num_dots',	'num_digits',	'num_special_chars',	'has_at',	'has_https',	'num_subdirs',	'ip_present',	'entropy', 'tld']
+independent_features = ["url_length", "hostname_length", "num_dots", "num_hyphens", "has_https", "num_subdirs", "num_params", "has_ip", "is_encoded", "starts_with_www", "ends_with_suspicious_tld", "dns_record_exists", "is_alexa_top"] 
 def ml_check(url):
     try:
-        extracted_url = extract_url_features(pd.DataFrame({'url': [url]}))
-        prediction = model.predict(extracted_url[features])
+        extracted_url = extract_all_features(url)
+        prediction = model.predict(extracted_url[independent_features])
         return prediction[0]
     except Exception as e:
         print(f"Error in ML check: {e}")

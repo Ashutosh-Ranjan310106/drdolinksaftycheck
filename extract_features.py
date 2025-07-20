@@ -7,7 +7,11 @@ import whois
 import datetime
 import ssl
 import tldextract
-
+try:
+    with open("top-1m.csv", "r") as f:
+        top_domains = {line.strip().split(',')[1] for line in f}
+except:
+    top_domains = None
 #lexical
 def extract_lexical_features(url):
     parsed = urlparse(url)
@@ -19,6 +23,8 @@ def extract_lexical_features(url):
     suspicious_tlds = {'zip', 'xyz', 'tk', 'top', 'gq', 'ga', 'ml', 'cyou', 'buzz', 'cf', 'icu', 'wang', 'live'}
 
     return {
+        "url":url,
+        "domain": domain,
         #len>75 
         "url_length": len(url),
         #len>50 
@@ -52,77 +58,56 @@ def extract_lexical_features(url):
 
         #suspicious words - https://www.researchgate.net/figure/Suspicious-words-to-detect-phishing-URLs_fig6_364265241
         "suspicious_words": int(any(w in url.lower() for w in ['login', 'verify', 'account', 'update', 'secure', 'bank', 'lucky', 'bonus', 'gift', 'signin']))
-    }, domain
-
+    }
+try:
+    context = ssl.create_default_context()
+except:
+    context=None
 #host based
 def extract_host_features(domain):
     features = {
-        "domain_age_days": -1,
+        #"domain_age_days": -1,
         "dns_record_exists": 0,
         "has_ssl_certificate": 0,
         "is_alexa_top": 0
     }
-
     # dom age
+    '''
     try:
-        w = whois.whois(domain)
-        creation_date = w.creation_date
-        if isinstance(creation_date, list):
-            creation_date = creation_date[0]
-        if creation_date:
-            age = (datetime.datetime.now() - creation_date).days
-            features["domain_age_days"] = age
+        try:
+            w = whois.whois(domain)
+            creation_date = w.creation_date
+            if isinstance(creation_date, list):
+                creation_date = creation_date[0]
+            if creation_date:
+                age = (datetime.datetime.now() - creation_date).days
+                features["domain_age_days"] = age
+        except:
+            pass
     except:
         pass
-
+    '''
     # DNS Check
     try:
         socket.gethostbyname(domain)
         features["dns_record_exists"] = 1
     except:
         pass
-
     # ssl check
     try:
-        context = ssl.create_default_context()
-        with socket.create_connection((domain, 443), timeout=3) as sock:
-            with context.wrap_socket(sock, server_hostname=domain) as ssock:
-                features["has_ssl_certificate"] = 1
+        if context:
+            with socket.create_connection((domain, 443), timeout=3) as sock:
+                with context.wrap_socket(sock, server_hostname=domain) as ssock:
+                    features["has_ssl_certificate"] = 1
     except:
         pass
-
     # alexa top 
-    try:
-        with open("top-1m.csv", "r") as f:
-            top_domains = {line.strip().split(',')[1] for line in f}
+    if top_domains:
         features["is_alexa_top"] = int(domain in top_domains)
-    except:
-        pass
-
     return features
 
 #main func
 def extract_all_features(url):
-    lexical_features, domain = extract_lexical_features(url)
-    host_features = extract_host_features(domain)
+    lexical_features = extract_lexical_features(url)
+    host_features = extract_host_features(lexical_features["domain"])
     return {**lexical_features, **host_features}
-
-
-
-
-
-import pandas as pd
-from tqdm import tqdm
-from extract_features import extract_all_features
-
-# Assuming you have a DataFrame `df` with a column 'url'
-tqdm.pandas()  # adds a progress bar to apply
-
-# Apply feature extraction
-features_df = df['url'].progress_apply(lambda url: pd.Series(extract_all_features(url)))
-
-# Concatenate with original DataFrame (optional)
-df_with_features = pd.concat([df, features_df], axis=1)
-
-
-
