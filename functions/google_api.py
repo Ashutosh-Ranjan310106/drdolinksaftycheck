@@ -32,8 +32,6 @@ def google_api(url):
         response = requests.post(apiurl, json=respose_body, headers={'Content-Type': 'application/json'})
         respose_body["threatInfo"]["threatEntries"][0]["url"] = ''
         print(f"Response status code: {response.status_code}",response.text)
-        if response.status_code != 200:
-            return {"error": "Failed to check URL"}, response.status_code
         result = response.json()
         if result.get('matches'):
             status = -1

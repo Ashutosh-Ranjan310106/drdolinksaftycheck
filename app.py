@@ -84,7 +84,7 @@ def check():
             google_status = 0
         ml_status, extracted_url = ml_check(url)
         vt_thread.join()
-
+        print(google_status)
         final_status = final_decision(google_status, ml_status, vt_status[0])
         if save_log:
             with open("log.txt","a") as log_file:

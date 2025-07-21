@@ -2,7 +2,7 @@ Flask
 requests
 python-dotenv
 pandas
-scikit-learn
+scikit-learn==1.6.1
 tldextract
 tqdm
 import-ipynb

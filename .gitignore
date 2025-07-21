@@ -2,3 +2,5 @@
 venv/
 *.pkl
 log.txt
+*.pyc
+__pycache__/
