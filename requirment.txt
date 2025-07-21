@@ -7,3 +7,4 @@ tldextract
 tqdm
 import-ipynb
 python-whois
+numpy

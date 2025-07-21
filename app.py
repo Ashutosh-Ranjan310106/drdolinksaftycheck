@@ -6,11 +6,14 @@ from time import sleep
 from dotenv import load_dotenv
 import os
 import pickle
-import vt
+import functions.virus_total_api as virus_total_api
+from functions.google_api import google_api
 from threading import Thread
+import pandas as pd    
+from functions.extract_features import extract_all_features
 
 model_path = r'models\random_forest_model.pkl'
-model = pickle.load(open(model_path,'rb'))
+RFmodel = pickle.load(open(model_path,'rb'))
 
 load_dotenv()
 
@@ -23,12 +26,9 @@ app.config["PORT"] = int(os.getenv("PORT", 5000))  # must cast to int
 app.config["TEMPLATE_FOLDER"] = "templates"
 app.config["DEBUG"] = os.getenv("DEBUG", "True").lower() == "true"
 api_key = os.getenv('APIKEY') or None
-
-
-apiurl = 'https://safebrowsing.googleapis.com/v4/threatMatches:find?key=' + api_key if api_key else None
+VT_API_KEY = os.getenv("VT_API_KEY") or None
+save_log = os.getenv("SAVE_LOG", "True").lower() == "true"
 backend_url = f"http://{app.config['HOST']}:{app.config['PORT']}"
-
-
 
 respose_body = {
   "client": {
@@ -38,7 +38,7 @@ respose_body = {
   "threatInfo": {
     "threatTypes": 
     [
-      "MALWARE", "SOCIAL_ENGINEERING"
+      "MALWARE", "SOCIAL_ENGINEERING",""
     ],
     "platformTypes": ["ANY_PLATFORM"],
     "threatEntryTypes": ["URL"],
@@ -48,33 +48,7 @@ respose_body = {
   }
 }
 
-def google_api_key_check(url):
-    if api_key:
-        respose_body["threatInfo"]["threatEntries"][0]["url"] = url
 
-        response = requests.post(apiurl, json=respose_body, headers={'Content-Type': 'application/json'})
-        respose_body["threatInfo"]["threatEntries"][0]["url"] = ''
-        print(f"Response status code: {response.status_code}",response.text)
-        if response.status_code != 200:
-            return {"error": "Failed to check URL"}, response.status_code
-        result = response.json()
-        if result.get('matches'):
-            status = -1
-        else:
-            status = 1
-
-        return status
-    else:
-        return 0.5
-    
-import pandas as pd
-import re
-import tldextract
-from urllib.parse import urlparse
-from collections import Counter
-import math
-import string
-from extract_features import extract_all_features
 
 
 
@@ -82,8 +56,9 @@ independent_features = ["url_length", "hostname_length", "num_dots", "num_hyphen
 def ml_check(url):
     try:
         extracted_url = extract_all_features(url)
-        prediction = model.predict(extracted_url[independent_features])
-        return prediction[0]
+        print(extracted_url)
+        prediction = RFmodel.predict(pd.DataFrame([extracted_url])[independent_features])
+        return prediction[0],extracted_url
     except Exception as e:
         print(f"Error in ML check: {e}")
         return 0
@@ -100,20 +75,31 @@ def check():
             return {"error": "Invalid request, 'url' is required"}, 400
         url = data['url']
         print(f"Received URL: {url}")
-        vt_status=[1]
-        vt_thread = Thread(target=vt.main, args=(url,vt_status))
-        vt_thread.start()  # Start VT analysis in a separate thread
+        vt_status=[0]
         try:
-            google_status = google_api_key_check(url)
+            vt_thread = Thread(target=virus_total_api.main, args=(url,vt_status))
+            vt_thread.start()
+            google_status = google_api(url)
         except:
-            google_status = 1
-        ml_status = ml_check(url)
+            google_status = 0
+        ml_status, extracted_url = ml_check(url)
         vt_thread.join()
 
         final_status = final_decision(google_status, ml_status, vt_status[0])
+        if save_log:
+            with open("log.txt","a") as log_file:
+                log_file.write(str(extracted_url)+'\n')
+                log_file.write(f"URL: {url}, Google: {google_status}, ML: {ml_status},Virus Total: {vt_status} Final: {'Safe' if final_status else 'Unsafe'}\n")
         print(f"URL: {url}, Google: {google_status}, ML: {ml_status},Virus Total: {vt_status} Final: {'Safe' if final_status else 'Unsafe'}")
-        
-        return jsonify({"URL": url,"safe": final_status})
+        respose = {}
+        respose["URL"] = url
+        if api_key:
+            respose["Google"] = int(google_status>=0)
+        if VT_API_KEY:
+            respose["Virus_total"] = int(vt_status[0]>=0)
+        respose["mlModel"] = int(ml_status)
+        respose["safe"] = final_status
+        return jsonify(respose)
     else:
         return render_template('index.html',url=None,Backend_URL=backend_url)
     

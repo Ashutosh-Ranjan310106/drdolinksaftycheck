@@ -82,16 +82,19 @@ def get_verdict(report_data):
 
 # ==== MAIN ====
 def main(url, var):
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))  # Replace with your URL
-    print("Submitting URL for scanning...")
-    submission = submit_url(url)
+    if API_KEY:
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))  # Replace with your URL
+        print("Submitting URL for scanning...")
+        submission = submit_url(url)
 
-    analysis_url = submission["data"]["links"]["self"]
-    print("Waiting for report...")
-    time.sleep(5)  # Wait for a while before fetching the report
-    report = get_report(analysis_url)
-    #print(report)
-    verdict = analyze_with_trusted_vendors(report)
-    print(f"Verdict: {verdict}")
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-    var[0] = verdict
+        analysis_url = submission["data"]["links"]["self"]
+        print("Waiting for report...")
+        time.sleep(5)  # Wait for a while before fetching the report
+        report = get_report(analysis_url)
+        #print(report)
+        verdict = analyze_with_trusted_vendors(report)
+        print(f"Verdict: {verdict}")
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        var[0] = verdict
+    else:
+        var[0] = 0

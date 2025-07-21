@@ -1,0 +1,45 @@
+from dotenv import load_dotenv
+import os
+import requests
+load_dotenv()
+api_key = os.getenv('APIKEY') or None
+apiurl = 'https://safebrowsing.googleapis.com/v4/threatMatches:find?key=' + api_key if api_key else None
+
+
+respose_body = {
+"client": {
+    "clientId": "myapp",
+    "clientVersion": "1.0"
+},
+"threatInfo": {
+    "threatTypes": 
+    [
+    "MALWARE", "SOCIAL_ENGINEERING",""
+    ],
+    "platformTypes": ["ANY_PLATFORM"],
+    "threatEntryTypes": ["URL"],
+    "threatEntries": [
+    {"url": ''}
+    ]
+}
+}
+
+
+def google_api(url):
+    if api_key:
+        respose_body["threatInfo"]["threatEntries"][0]["url"] = url
+
+        response = requests.post(apiurl, json=respose_body, headers={'Content-Type': 'application/json'})
+        respose_body["threatInfo"]["threatEntries"][0]["url"] = ''
+        print(f"Response status code: {response.status_code}",response.text)
+        if response.status_code != 200:
+            return {"error": "Failed to check URL"}, response.status_code
+        result = response.json()
+        if result.get('matches'):
+            status = -1
+        else:
+            status = 1
+
+        return status
+    else:
+        return 0
