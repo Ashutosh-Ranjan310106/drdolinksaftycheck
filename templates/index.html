@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Page metadata and title -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Malicious Link Safety Check</title>
+
+  <!-- Inline styling for layout, colors, and animations -->
   <style>
+    /* General page styles */
     body {
       margin: 0;
       background: black;
@@ -19,10 +23,12 @@
       position: relative;
     }
 
+    /* Instructional text block at the top */
     #hud {
       margin-bottom: 20px;
     }
 
+    /* Wrapper for input + button + result area */
     #control-panel {
       display: flex;
       flex-direction: column;
@@ -30,6 +36,7 @@
       z-index: 2;
     }
 
+    /* URL input field styling */
     input[type="text"] {
       padding: 10px;
       background-color: #111;
@@ -39,18 +46,21 @@
       font-family: 'Courier New', monospace;
       font-size: 16px;
     }
+
+    /* Input styling on focus */
     input[type="text"]:focus {
         background-color: transparent;
         border-color: #00ff00;
         color: #00ff00;
-
         font-size: 16px;
     }
 
+    /* Hide element visually */
     .hiden {
       display: none !important;
     }
 
+    /* Analyze button styling */
     #execute-btn {
       margin-top: 10px;
       padding: 10px 20px;
@@ -61,14 +71,16 @@
       cursor: pointer;
     }
 
+    /* Text area where results are shown */
     #result {
       margin-top: 20px;
       color: #44ffaa;
       font-size: 18px;
       text-align: center;
-      white-space: pre-line;
+      white-space: pre-line; /* Preserve line breaks */
     }
 
+    /* URL display area that shows animation */
     #url {
         position: relative;
         width: 300px;
@@ -80,8 +92,9 @@
         color: #00ff88;
         margin-top: 10px;
         overflow: hidden;
-        }
+    }
 
+    /* Animated scanning line across the URL box */
     .scan-line {
         position: absolute;
         top: 0px;
@@ -92,21 +105,27 @@
         opacity: 0;
         pointer-events: none;
         z-index: 1;
-        }
+    }
 
+    /* Add animation to scan line */
     .scanning {
         opacity: 1;
         animation: scanMove 0.5s linear infinite alternate;
     }
+
+    /* Text color for safe verdict */
     .safe-text {
-      color: #00ff00; /* neon green */
+      color: #00ff00;
       font-weight: bold;
     }
 
+    /* Text color for unsafe verdict */
     .unsafe-text {
-      color: #ff4444; /* neon red */
+      color: #ff4444;
       font-weight: bold;
     }
+
+    /* Helper span for auto-resizing input width */
     #text-width-helper {
         position: absolute;
         visibility: hidden;
@@ -115,136 +134,144 @@
         font-size: 16px;
     }
 
+    /* Animation movement for scanning line */
     @keyframes scanMove {
-        0% {
-            top: 0px;
-        }
-        100% {
-            top: 100%;
-        }
-        }
+        0% { top: 0px; }
+        100% { top: 100%; }
+    }
   </style>
 </head>
-<body onload="document.getElementById('user-input').focus()">
 
+<body onload="document.getElementById('user-input').focus()">
+  <!-- Top instruction section -->
   <div id="hud">
     <div class="hud-line">
       <span>SYSTEM:</span>
-      <span class="hud-value">Please enter the URL you want to scan."</span>
+      <span class="hud-value">Please enter the URL you want to scan.</span>
     </div>
   </div>
 
+  <!-- User interaction area -->
   <div id="control-panel">
     <input type="text" id="user-input" placeholder="Type or paste a URL to check its safety">
-    <span id="text-width-helper"></span>
+    <span id="text-width-helper"></span> <!-- Used to adjust input width dynamically -->
     <div id="url"><div class="scan-line" id="scan-line"></div></div>
     <button id="execute-btn">Analyze</button>
     <div id="result"></div>
-
   </div>
 
-
-
+  <!-- JavaScript that controls behavior and backend interaction -->
   <script type="module">
-
+    // Get element references
     const button = document.getElementById("execute-btn");
     const inputBox = document.getElementById("user-input");
     const resultBox = document.getElementById("result");
     const url_block = document.getElementById("url");
-    const controlPanel = document.getElementById("control-panel");
     const textWidthHelper = document.getElementById("text-width-helper");
-    resultBox.style.whiteSpace = 'pre-line'
+
+    // Hide scanning box initially
     url_block.classList.add('hiden');
+
+    // Print backend URL (for debugging)
     console.log("Backend URL: {{Backend_URL}}");
-    // Dynamically resize input width
+
+    // Dynamically resize input field based on content
     inputBox.addEventListener("input", () => {
-    textWidthHelper.textContent = inputBox.value || inputBox.placeholder;
-    const width = Math.max(textWidthHelper.offsetWidth, 300); // add some padding
-    console.log(`Input width: ${width}px ${inputBox.style.width}`);
-    inputBox.style.width = width + "px";
-    })
+      textWidthHelper.textContent = inputBox.value || inputBox.placeholder;
+      const width = Math.max(textWidthHelper.offsetWidth, 300);
+      console.log(`Input width: ${width}px`);
+      inputBox.style.width = width + "px";
+    });
+
+    // When the analyze button is clicked
     button.addEventListener("click", () => {
-        const input = inputBox.value.trim();
-        if (input === "") {
-            resultBox.textContent = "Please enter a valid URL.";
-            return;
-        }
+      const input = inputBox.value.trim();
 
-        // Show the URL block with updated content
-        url_block.classList.remove('hiden');
-        url_block.innerHTML = `${input} <div class="scan-line scanning" id="scan-line"></div>`;
-        url_block.style.width = inputBox.offsetWidth + "px";
-        inputBox.classList.add('hiden');
+      // Validate input
+      if (input === "") {
+        resultBox.textContent = "Please enter a valid URL.";
+        return;
+      }
 
-        resultBox.textContent = "Checking the URL...";
+      // Show scan animation
+      url_block.classList.remove('hiden');
+      url_block.innerHTML = `${input} <div class="scan-line scanning" id="scan-line"></div>`;
+      url_block.style.width = inputBox.offsetWidth + "px";
 
-        fetch("{{Backend_URL}}", {
-          method: 'POST', // or 'GET', 'PUT', 'DELETE'
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({"url":input}) // optional for POST/PUT
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-          console.log(data);
-          if ('URL' in data){    
-            let resultText = '';
+      // Hide input and show loading message
+      inputBox.classList.add('hiden');
+      resultBox.textContent = "Checking the URL...";
 
-            if (('Virus_total' in data) &&  ('Google' in data)) {
-              resultText += `Final verdict url is ${data.safe ? 'safe' : 'unsafe'} \n`;
-            }else{
-              resultText += ` url is ${data.safe ? 'safe' : 'unsafe'} \n`;
-            }
-            if (('Virus_total' in data) ||  ('Google' in data) || ('mlModel' in data))
-              resultText += `\nIndividual API Results:- \n`;
+      // Send the URL to the backend for analysis
+      fetch("{{Backend_URL}}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ "url": input })
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+      })
+      .then(data => {
+        console.log(data);
+        if ('URL' in data) {
+          let resultText = '';
 
-            if ('Google' in data) {
-              resultText += `Google API: ${data.Google ? 'safe' : 'unsafe'}\n`;
-            }
+          // Display final safety verdict
+          if ('Virus_total' in data && 'Google' in data) {
+            resultText += `Final verdict url is ${data.safe ? 'safe' : 'unsafe'} \n`;
+          } else {
+            resultText += `url is ${data.safe ? 'safe' : 'unsafe'} \n`;
+          }
 
-            if ('Virus_total' in data) {
-              resultText += `VirusTotal API: ${data.Virus_total ? 'safe' : 'unsafe'}\n`;
-            }
+          // Show individual results from APIs and ML
+          if ('Virus_total' in data || 'Google' in data || 'mlModel' in data) {
+            resultText += `\nIndividual API Results:- \n`;
+          }
+          if ('Google' in data) {
+            resultText += `Google API: ${data.Google ? 'safe' : 'unsafe'}\n`;
+          }
+          if ('Virus_total' in data) {
+            resultText += `VirusTotal API: ${data.Virus_total ? 'safe' : 'unsafe'}\n`;
+          }
+          if ('mlModel' in data) {
+            resultText += `ML Model: ${data.mlModel ? 'safe' : 'unsafe'}\n`;
+          }
 
-            if ('mlModel' in data) {
-              resultText += `ML Model: ${data.mlModel ? 'safe' : 'unsafe'}\n`;
-            }
-
-                
-            
-            let i = 0;
-            resultBox.textContent = '------Scan complete------\n';
-            function typeEffect() {
-              if (i < resultText.length) {
-                resultBox.textContent += resultText.charAt(i++);
-                setTimeout(typeEffect, 30);
-              }else{
-                if (('Virus_total' in data) && ('Google' in data))
-                  resultBox.textContent += `Note: Final result is derived from a majority decision of the individual APIs.`;
+          // Simulated typing animation for results
+          let i = 0;
+          resultBox.textContent = '------Scan complete------\n';
+          function typeEffect() {
+            if (i < resultText.length) {
+              resultBox.textContent += resultText.charAt(i++);
+              setTimeout(typeEffect, 30); // delay between each character
+            } else {
+              if ('Virus_total' in data && 'Google' in data) {
+                resultBox.textContent += `Note: Final result is derived from a majority decision of the individual APIs.`;
               }
             }
-            typeEffect();
-            url_block.classList.add('hiden');
-            inputBox.classList.remove('hiden');
-          }else{throw new Error('Invalid response format');}
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            resultBox.textContent = `Oops! Unable to connect to the server. Please try again later.`;
-            url_block.classList.add('hiden');
-            inputBox.classList.remove('hiden');
-        });
+          }
 
-        console.log(`Processing URL: ${input}`);
-        // Simulate processing delay
+          typeEffect();
+
+          // Restore UI state
+          url_block.classList.add('hiden');
+          inputBox.classList.remove('hiden');
+
+        } else {
+          throw new Error('Invalid response format');
+        }
+      })
+      .catch(error => {
+        // Show error if backend is unreachable or crashes
+        console.error('Error:', error);
+        resultBox.textContent = `Oops! Unable to connect to the server. Please try again later.`;
+        url_block.classList.add('hiden');
+        inputBox.classList.remove('hiden');
+      });
+
+      console.log(`Processing URL: ${input}`);
     });
   </script>
-
 </body>
 </html>

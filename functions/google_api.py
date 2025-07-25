@@ -1,11 +1,13 @@
 from dotenv import load_dotenv
 import os
 import requests
+
+# Load .env variables
 load_dotenv()
 api_key = os.getenv('APIKEY') or None
 apiurl = 'https://safebrowsing.googleapis.com/v4/threatMatches:find?key=' + api_key if api_key else None
 
-
+# Request body template
 respose_body = {
 "client": {
     "clientId": "myapp",
@@ -14,7 +16,7 @@ respose_body = {
 "threatInfo": {
     "threatTypes": 
     [
-    "MALWARE", "SOCIAL_ENGINEERING",""
+    "MALWARE", "SOCIAL_ENGINEERING","UNWANTED_SOFTWARE"
     ],
     "platformTypes": ["ANY_PLATFORM"],
     "threatEntryTypes": ["URL"],
@@ -24,7 +26,7 @@ respose_body = {
 }
 }
 
-
+# Check URL safety
 def google_api(url):
     if api_key:
         respose_body["threatInfo"]["threatEntries"][0]["url"] = url
