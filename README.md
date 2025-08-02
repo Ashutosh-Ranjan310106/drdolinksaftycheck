@@ -34,7 +34,7 @@ python -m venv venv
 venv\Scripts\activate  # On Linux: source venv/bin/activate
 
 # Install required packages
-pip install -r requirment.txt
+pip install -r requirements.txt
 ```
 Running the Application
 ```bash
