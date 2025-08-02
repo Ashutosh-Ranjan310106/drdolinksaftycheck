@@ -54,7 +54,22 @@ VT_API_KEY = os.getenv("VT_API_KEY") or None
 save_log = os.getenv("SAVE_LOG", "True").lower() == "true"
 
 # Backend URL construction for frontend
-backend_url = f"http://{app.config['HOST']}:{app.config['PORT']}"
+import socket
+
+def get_backend_url():
+
+    # Avoid invalid or internal-only hosts
+    if app.config["HOST"] in ["0.0.0.0", "127.0.0.1"]:
+        app.config["HOST"]= socket.gethostname()  # Fallback to local hostname
+        try:
+            app.config["HOST"] = socket.gethostbyname(app.config["HOST"])
+        except:
+            pass
+
+    return f"http://{app.config["HOST"]}:{app.config["PORT"]}"
+
+backend_url = get_backend_url()
+
 
 # ------------------------------------------------------
 # Function to classify a URL using ML model (RandomForest)
@@ -165,7 +180,7 @@ def check():
 print(app.config["DEBUG"])
 if __name__ == "__main__":
     app.run(
-        host=app.config["HOST"],
+        host='0.0.0.0',
         port=app.config["PORT"],
         debug=app.config["DEBUG"]
     )
