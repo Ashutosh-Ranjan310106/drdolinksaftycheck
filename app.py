@@ -41,11 +41,14 @@ app = Flask(__name__)
 app.config["secret_key"] = 'mysecretkey'  # Flask secret key
 app.config["jwt_secret"] = 'myjwtsecret'  # JWT secret (not used here)
 app.config["jwt_algorithm"] = 'HS256'     # JWT algorithm (not used here)
-app.config["HOST"] = os.getenv("HOST", "0.0.0.0")  # Server host
-app.config["PORT"] = int(os.getenv("PORT", 5000))     # Server port
+
 app.config["TEMPLATE_FOLDER"] = "templates"           # Template folder for frontend
 app.config["DEBUG"] = os.getenv("DEBUG", "True").lower() == "true"  # Debug mode
-
+if app.config["DEBUG"]:
+    app.config["HOST"] = os.getenv("HOST", "localhost")  # Server host
+else:
+    app.config["HOST"] = '0.0.0.0'
+app.config["PORT"] = int(os.getenv("PORT", 5000))     # Server port
 # Read API keys from environment or fallback to None
 api_key = os.getenv('APIKEY') or None
 VT_API_KEY = os.getenv("VT_API_KEY") or None
@@ -54,22 +57,7 @@ VT_API_KEY = os.getenv("VT_API_KEY") or None
 save_log = os.getenv("SAVE_LOG", "True").lower() == "true"
 
 # Backend URL construction for frontend
-import socket
-
-def get_backend_url():
-
-    # Avoid invalid or internal-only hosts
-    if app.config["HOST"] in ["0.0.0.0", "127.0.0.1"]:
-        app.config["HOST"]= socket.gethostname()  # Fallback to local hostname
-        try:
-            app.config["HOST"] = socket.gethostbyname(app.config["HOST"])
-        except:
-            pass
-
-    return f"http://{app.config["HOST"]}:{app.config["PORT"]}"
-
-backend_url = get_backend_url()
-
+backend_url = os.getenv('BACKEND_URL',f"http://{app.config['HOST']}:{app.config['PORT']}")
 
 # ------------------------------------------------------
 # Function to classify a URL using ML model (RandomForest)
@@ -177,10 +165,10 @@ def check():
 # ---------------------------------------------
 # Start Flask app if this file is executed directly
 # ---------------------------------------------
-print(app.config["DEBUG"])
+
 if __name__ == "__main__":
     app.run(
-        host='0.0.0.0',
+        host=app.config["HOST"],
         port=app.config["PORT"],
         debug=app.config["DEBUG"]
     )
