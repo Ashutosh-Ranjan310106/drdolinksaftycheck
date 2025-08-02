@@ -22,7 +22,10 @@ from functions.extract_features import extract_all_features
 # Load pretrained ML model (Random Forest)
 # and feature column names from pickle file
 # -------------------------------
-model_path = r'model\random_forest_model.pkl'
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(BASE_DIR, 'model', 'random_forest_model.pkl')
+
 with open(model_path, 'rb') as f:
     RFmodel = pickle.load(f)                # Load the trained Random Forest model
     independent_features = pickle.load(f)   # Load the list of features used during training
