@@ -92,5 +92,5 @@ BACKEND_URL=https://yourbackend.onrender.com
 
 ## Screenshots
 
-![App Screenshot](screenshots\result.png)
+![App Screenshot](screenshots/result.png)
 
