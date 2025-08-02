@@ -3,8 +3,6 @@
 import re
 import socket
 from urllib.parse import urlparse
-import whois
-import datetime
 import ssl
 import tldextract
 try:

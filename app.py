@@ -3,8 +3,6 @@
 # Combines VirusTotal, Google API, and ML model
 # ---------------------------------------------
 
-import requests
-import json
 from flask import jsonify, Flask, request, render_template
 from time import sleep
 from dotenv import load_dotenv
@@ -43,7 +41,7 @@ app = Flask(__name__)
 app.config["secret_key"] = 'mysecretkey'  # Flask secret key
 app.config["jwt_secret"] = 'myjwtsecret'  # JWT secret (not used here)
 app.config["jwt_algorithm"] = 'HS256'     # JWT algorithm (not used here)
-app.config["HOST"] = os.getenv("HOST", "localhost")  # Server host
+app.config["HOST"] = os.getenv("HOST", "0.0.0.0")  # Server host
 app.config["PORT"] = int(os.getenv("PORT", 5000))     # Server port
 app.config["TEMPLATE_FOLDER"] = "templates"           # Template folder for frontend
 app.config["DEBUG"] = os.getenv("DEBUG", "True").lower() == "true"  # Debug mode
@@ -164,6 +162,7 @@ def check():
 # ---------------------------------------------
 # Start Flask app if this file is executed directly
 # ---------------------------------------------
+print(app.config["DEBUG"])
 if __name__ == "__main__":
     app.run(
         host=app.config["HOST"],
