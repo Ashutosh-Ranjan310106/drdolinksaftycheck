@@ -166,6 +166,8 @@ def check():
 # Start Flask app if this file is executed directly
 # ---------------------------------------------
 
+print(app.config["HOST"],app.config["PORT"],app.config["DEBUG"])
+
 if __name__ == "__main__":
     app.run(
         host=app.config["HOST"],
